@@ -1,0 +1,98 @@
+func padded_message(message):
+    padded_message = []  // Initialize an empty list for the padded message
+
+    // Append the original message to the padded message
+    padded_message += message
+
+    // Append a single '1' bit (0x80 in hexadecimal is 10000000 in binary)
+    padded_message += 0x80
+
+    // Add zero bytes (0x00) until the message length is 64 bits shy of a multiple of 512
+    while ((size(padded_message) * 8) % 512 != 448):
+        padded_message += 0x00
+
+    // Append the original message length as a 64-bit big-endian integer
+    original_length = size(message) * 8  // Calculate the length of the original message in bits
+    for i = 7 downto 0:  // Iterate from 7 to 0 for the 8 bytes of the 64-bit integer
+        padded_message += (original_length >> (i * 8)) & 0xFF  // Extract each byte
+
+    return padded_message
+
+func parse_message(padded_message):
+    blocks = []  // Initialize an empty list to store 32-bit words
+
+    // Iterate over the padded_message in chunks of 4 bytes (32 bits)
+    for i from 0 to size(padded_message) - 1 step 4:
+        block = 0  // Initialize the block as 0
+
+        // Combine 4 consecutive bytes into a single 32-bit word
+        for j from 0 to 3:
+            block = (block << 8) | padded_message[i + j]
+
+        blocks += block  // Add the 32-bit word to the list of blocks
+
+    return blocks
+
+func leftRotate(value , shift):
+    return (value << shift) | (value >> (32 - shift))
+
+
+func sha1(message):
+    // Step 1: Preprocessing
+    padded_message = pad_message(message)
+    blocks = parse_message(padded_message)
+
+    // Step 2: Initialize hash values (H0, H1, H2, H3, H4)
+    H0 = 0x67452301
+    H1 = 0xEFCDAB89
+    H2 = 0x98BADCFE
+    H3 = 0x10325476
+    H4 = 0xC3D2E1F0
+
+    // Step 3: Process each 512-bit block
+    for block in blocks:
+        // Step 3.1: Prepare the message schedule (W)
+        W = array[80]
+        for i from 0 to 15:
+            W[i] = block[i]  // First 16 words come from the block
+        for i from 16 to 79:
+            W[i] = leftRotate(W[i-3] XOR W[i-8] XOR W[i-14] XOR W[i-16], 1)
+
+        // Step 3.2: Initialize working variables (a, b, c, d, e)
+        a = H0
+        b = H1
+        c = H2
+        d = H3
+        e = H4
+
+        // Step 3.3: Perform the main compression loop
+        for i from 0 to 79:
+            if i between 0 and 19:
+                f = (b AND c) OR ((NOT b) AND d)
+                k = 0x5A827999
+            else if i between 20 and 39:
+                f = b XOR c XOR d
+                k = 0x6ED9EBA1
+            else if i between 40 and 59:
+                f = (b AND c) OR (b AND d) OR (c AND d)
+                k = 0x8F1BBCDC
+            else if i between 60 and 79:
+                f = b XOR c XOR d
+                k = 0xCA62C1D6
+
+            temp = (leftRotate(a, 5) + f + e + k + W[i]) & 0xFFFFFFFF
+            e = d
+            d = c
+            c = leftRotate(b, 30)
+            b = a
+            a = temp
+
+        // Step 3.4: Add the working variables back into the hash values
+        H0 = (H0 + a) & 0xFFFFFFFF
+        H1 = (H1 + b) & 0xFFFFFFFF
+        H2 = (H2 + c) & 0xFFFFFFFF
+        H3 = (H3 + d) & 0xFFFFFFFF
+        H4 = (H4 + e) & 0xFFFFFFFF
+
+    // Step 4: Produce the final hash value
+    return concatenate(H0, H1, H2, H3, H4) as hexadecimal string
