@@ -24,14 +24,9 @@ void choose(){
     int choice;
     bool t = true;
     while(t) {
-        //ascii art
-        fstream ascii("src/ascii.txt");
         string line;
-        while (getline(ascii, line)) {
-            cout << line << endl;
-        }
         //selection
-        fstream select("src/selection.txt");
+        fstream select("main/selection.txt");
         while (getline(select, line)) {
             cout << line << endl;
         }

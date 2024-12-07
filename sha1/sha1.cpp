@@ -4,6 +4,7 @@
 #include <bitset>
 #include <iomanip>
 
+
 using namespace std;
 
 uint32_t leftRotate(uint32_t value, uint32_t shift) {
@@ -138,7 +139,6 @@ string sha1(const string &message) {
         }
         
         cout << "\n\n" << endl;
-        cout << "applying 5 constant values to words in a specific range" << endl;
         cout << "after 80 rounds we get" << endl;
 
         // Update hash values
